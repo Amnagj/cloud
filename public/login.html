@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion</title>
+    <!-- Importation de l'API reCAPTCHA -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Connexion</h2>
+        <!-- Formulaire de connexion -->
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Nom d'utilisateur" required>
+            <input type="password" id="password" placeholder="Mot de passe" required>
+            <!-- reCAPTCHA v2 -->
+            <div class="g-recaptcha" data-sitekey="your_site_key"></div>
+            <button type="submit">Se connecter</button>
+        </form>
+        <p id="errorMessage" class="error"></p>
+    </div>
+
+    <script>
+        // Handle form submission
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const captchaResponse = grecaptcha.getResponse();
+
+            if (!captchaResponse) {
+                document.getElementById('errorMessage').textContent = 'Veuillez vérifier que vous n\'êtes pas un robot.';
+                return;
+            }
+
+            const loginData = { username, password, captchaResponse };
+
+            try {
+                const response = await fetch('http://localhost:3000/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(loginData),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Handle successful login
+                    alert('Connexion réussie');
+                    if (data.role === 'superuser') {
+                        window.location.href = 'superuser.html';
+                    } else if (data.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'user.html';
+                    }
+                } else {
+                    // Handle error
+                    document.getElementById('errorMessage').textContent = data.error;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('errorMessage').textContent = 'Erreur de connexion. Veuillez réessayer plus tard.';
+            }
+        });
+    </script>
+</body>
+</html>

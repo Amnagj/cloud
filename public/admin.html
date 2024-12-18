@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panneau d'administration</title>
+    <link rel="stylesheet" href="./styles/style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Panneau d'administration</h2>
+
+        <!-- Formulaire pour ajouter un utilisateur -->
+        <form id="addUserForm">
+            <h3>Ajouter un utilisateur</h3>
+            <input type="text" id="new_username" placeholder="Nom d'utilisateur" required>
+            <input type="email" id="new_email" placeholder="Email" required>
+            <input type="password" id="new_password" placeholder="Mot de passe" required>
+            <select id="new_role" required>
+                <option value="user">Utilisateur</option>
+                <option value="admin">Admin</option>
+                <option value="superuser">Superuser</option>
+            </select>
+            <button type="submit">Ajouter</button>
+        </form>
+
+        <!-- Liste des utilisateurs -->
+        <h3>Liste des utilisateurs (rôle : Utilisateur)</h3>
+        <table id="userTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom d'utilisateur</th>
+                    <th>Email</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <!-- Bouton de déconnexion -->
+        <form id="logoutForm">
+            <button type="submit">Déconnexion</button>
+        </form>
+    </div>
+
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.emailjs.com/dist/email.min.js"></script>
+    
+    <script>
+        // Initialize EmailJS with your public key
+        emailjs.init('your_user_id'); // Replace with your EmailJS user ID
+
+        // Add user
+        document.getElementById('addUserForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('new_username').value;
+            const email = document.getElementById('new_email').value;
+            const password = document.getElementById('new_password').value;
+            const role = document.getElementById('new_role').value;
+
+            const response = await fetch('/add-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `new_username=${username}&new_email=${email}&new_password=${password}&new_role=${role}`
+            });
+
+            const message = await response.text();
+            alert(message);
+
+            if (response.ok) {
+                // Send welcome email using EmailJS
+                sendEmail(username, email, role);
+            }
+
+            loadUsers(); // Reload the list of users
+        });
+
+        // Load users
+        async function loadUsers() {
+            const response = await fetch('/users');
+            const users = await response.json();
+            const tbody = document.getElementById('userTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = ''; // Clear existing table rows
+
+            users.forEach(user => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${user._id}</td>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td><button onclick="deleteUser('${user._id}')">Supprimer</button></td>
+                `;
+            });
+        }
+
+        // Delete user
+        async function deleteUser(userId) {
+            const response = await fetch('/delete-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `user_id=${userId}`
+            });
+
+            const message = await response.text();
+            alert(message);
+            loadUsers(); // Reload the list of users
+        }
+
+        // Send welcome email using EmailJS
+        function sendEmail(username, email, role) {
+            const templateParams = {
+                username: username,
+                email: email,
+                role: role
+            };
+
+            emailjs.send('your_service_id', 'your_template_id', templateParams)
+                .then(function(response) {
+                    console.log('Email envoyé avec succès:', response);
+                }, function(error) {
+                    console.error('Erreur lors de l\'envoi de l\'email:', error);
+                });
+        }
+
+        // Load users initially
+        loadUsers();
+    </script>
+</body>
+</html>
